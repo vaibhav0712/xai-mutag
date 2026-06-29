@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GNN Molecule Explainer Visualizer</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #090d16 0%, #111827 100%);
+            --panel-bg: rgba(17, 24, 39, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-emerald: #10b981;
+            --accent-cyan: #06b6d4;
+            --accent-purple: #a855f7;
+            --accent-orange: #f97316;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --active-accent: var(--accent-purple);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        #visualizer-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #canvas-svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Glassmorphism sidebar */
+        .sidebar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            bottom: 20px;
+            width: 380px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+            z-index: 10;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(to right, #ffffff, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 4px;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 16px;
+        }
+
+        /* File Upload Zone */
+        .upload-zone {
+            border: 2px dashed rgba(168, 85, 247, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(168, 85, 247, 0.02);
+            position: relative;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--active-accent);
+            background: rgba(168, 85, 247, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .upload-zone svg {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 10px;
+            stroke: var(--active-accent);
+            fill: none;
+        }
+
+        .upload-zone p {
+            font-size: 13px;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .upload-zone span {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: block;
+            margin-top: 4px;
+        }
+
+        #file-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* Metadata & Info Panel */
+        .info-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .info-header {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--active-accent);
+            margin-bottom: 10px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .info-label {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .info-val {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        /* Controls Panel */
+        .controls-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .control-group span {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--active-accent);
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Theme Selector */
+        .theme-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .theme-btn {
+            height: 28px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .theme-btn.active {
+            border-color: #ffffff;
+            box-shadow: 0 0 10px var(--theme-color);
+        }
+
+        .theme-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--theme-color);
+        }
+
+        /* Toggle switches */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 4px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: .3s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--active-accent);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(16px);
+        }
+
+        /* Legend Panel */
+        .legend-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .heatmap-gradient {
+            height: 8px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .legend-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* GNN Element Details Panel */
+        .details-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 20px;
+            z-index: 10;
+            display: none;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            transition: opacity 0.3s ease;
+        }
+
+        .details-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            color: #ffffff;
+        }
+
+        /* SVG Graph Styling */
+        .node-circle {
+            stroke: #090d16;
+            stroke-width: 2px;
+            cursor: pointer;
+            transition: r 0.2s ease, stroke-width 0.2s ease;
+        }
+
+        .node-circle:hover {
+            stroke: #ffffff;
+            stroke-width: 3px;
+        }
+
+        .edge-line {
+            cursor: pointer;
+            transition: stroke-width 0.2s ease;
+        }
+
+        .edge-line:hover {
+            stroke-width: 6px !important;
+        }
+
+        /* SVG Labels */
+        .node-label {
+            font-size: 12px;
+            font-weight: 600;
+            fill: #ffffff;
+            pointer-events: none;
+            text-anchor: middle;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 -2px 4px rgba(0, 0, 0, 0.8), 2px 0px 4px rgba(0, 0, 0, 0.8), -2px 0px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .edge-label-bg {
+            fill: rgba(9, 13, 22, 0.85);
+            rx: 4px;
+            ry: 4px;
+            pointer-events: none;
+        }
+
+        .edge-label-text {
+            font-size: 10px;
+            font-weight: 600;
+            fill: #9ca3af;
+            pointer-events: none;
+            text-anchor: middle;
+        }
+
+        /* Info Badge style */
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-mutagenic {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .badge-nonmutagenic {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="visualizer-container">
+        <!-- Sidebar controls and uploads -->
+        <div class="sidebar">
+            <div>
+                <h1>Molecule Explainer</h1>
+                <div class="subtitle">GNN node & edge importance visualizer</div>
+            </div>
+
+            <!-- Drag & Drop Uploader -->
+            <div class="upload-zone">
+                <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p>Upload Explanation JSON</p>
+                <span>Drag & drop or click to browse</span>
+                <input type="file" id="file-input" accept=".json">
+            </div>
+
+            <!-- Prediction & Metadata Panel -->
+            <div class="info-card">
+                <div class="info-header">Explanation Metadata</div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Molecule ID</span>
+                        <span class="info-val" id="meta-mol-id">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Predicted Class</span>
+                        <span class="info-val" id="meta-prediction">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">True Class</span>
+                        <span class="info-val" id="meta-true-class">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Confidence</span>
+                        <span class="info-val" id="meta-confidence">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visual Controls -->
+            <div class="controls-card">
+                <div class="info-header">Visual Controls</div>
+                
+                <!-- Color Theme -->
+                <div class="control-group">
+                    <label>Color Theme</label>
+                    <div class="theme-buttons">
+                        <button class="theme-btn active" style="--theme-color: var(--accent-purple);" data-theme="purple"></button>
+                        <button class="theme-btn" style="--theme-color: var(--accent-cyan);" data-theme="cyan"></button>
+                        <button class="theme-btn" style="--theme-color: var(--accent-emerald);" data-theme="emerald"></button>
+                        <button class="theme-btn" style="--theme-color: var(--accent-orange);" data-theme="orange"></button>
+                    </div>
+                </div>
+
+                <!-- Node Size Slider -->
+                <div class="control-group">
+                    <div class="control-label-row">
+                        <label for="node-size">Base Node Size</label>
+                        <span id="node-size-val">12px</span>
+                    </div>
+                    <input type="range" id="node-size" min="6" max="24" value="12">
+                </div>
+
+                <!-- Edge Width Slider -->
+                <div class="control-group">
+                    <div class="control-label-row">
+                        <label for="edge-width">Base Edge Width</label>
+                        <span id="edge-width-val">3px</span>
+                    </div>
+                    <input type="range" id="edge-width" min="1" max="10" value="3">
+                </div>
+
+                <!-- Force Strength Slider -->
+                <div class="control-group">
+                    <div class="control-label-row">
+                        <label for="force-strength">Link Distance</label>
+                        <span id="force-strength-val">80px</span>
+                    </div>
+                    <input type="range" id="force-strength" min="30" max="200" value="80">
+                </div>
+
+                <!-- Toggle Labels -->
+                <div class="toggle-row">
+                    <label>Show Node / Edge Labels</label>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-labels" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Heatmap Legend -->
+            <div class="legend-card">
+                <div class="info-header">Importance Heatmap</div>
+                <div class="heatmap-gradient" id="legend-gradient"></div>
+                <div class="legend-labels">
+                    <span>Low (Opacity 0.15)</span>
+                    <span>High (Opacity 1.0)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Node / Edge detail hover overlay -->
+        <div class="sidebar details-panel" id="details-panel">
+            <div class="details-title" id="detail-type">Element Detail</div>
+            <div class="info-grid" id="detail-contents">
+                <!-- Populated dynamically on hover -->
+            </div>
+        </div>
+
+        <!-- Central Visualization Canvas -->
+        <svg id="canvas-svg"></svg>
+    </div>
+
+    <script>
+        // Preset Color Schemes
+        const colorThemes = {
+            purple: {
+                base: '#a855f7',
+                active: '#c084fc',
+                gradient: 'linear-gradient(to right, rgba(168, 85, 247, 0.15), rgba(168, 85, 247, 1))'
+            },
+            cyan: {
+                base: '#06b6d4',
+                active: '#22d3ee',
+                gradient: 'linear-gradient(to right, rgba(6, 182, 212, 0.15), rgba(6, 182, 212, 1))'
+            },
+            emerald: {
+                base: '#10b981',
+                active: '#34d399',
+                gradient: 'linear-gradient(to right, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 1))'
+            },
+            orange: {
+                base: '#f97316',
+                active: '#fb923c',
+                gradient: 'linear-gradient(to right, rgba(249, 115, 22, 0.15), rgba(249, 115, 22, 1))'
+            }
+        };
+
+        let currentTheme = 'purple';
+        let currentDataset = null;
+
+        // Force Simulation Globals
+        let simulation = null;
+        let svg = d3.select('#canvas-svg');
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+
+        // Embedded default data representing molecule d305
+        const defaultData = {
+            "metadata": {
+                "molecule_id": "d305",
+                "uri": "http://dl-learner.org/carcinogenesis#d305",
+                "true_class": 0
+            },
+            "prediction": {
+                "predicted_class": 0,
+                "confidence": 0.8491
+            },
+            "graph": {
+                "nodes": [
+                    {"id": 0, "uri": "d305_1", "element": "Carbon", "importance_score": 0.1112},
+                    {"id": 1, "uri": "d305_10", "element": "Carbon", "importance_score": 0.1988},
+                    {"id": 2, "uri": "d305_11", "element": "Carbon", "importance_score": 0.1697},
+                    {"id": 3, "uri": "d305_12", "element": "Hydrogen", "importance_score": 0.1834},
+                    {"id": 4, "uri": "d305_13", "element": "Hydrogen", "importance_score": 0.1799},
+                    {"id": 5, "uri": "d305_14", "element": "Carbon", "importance_score": 0.1412},
+                    {"id": 6, "uri": "d305_15", "element": "Carbon", "importance_score": 0.1149},
+                    {"id": 7, "uri": "d305_16", "element": "Carbon", "importance_score": 0.1139},
+                    {"id": 8, "uri": "d305_17", "element": "Carbon", "importance_score": 0.112},
+                    {"id": 9, "uri": "d305_18", "element": "Carbon", "importance_score": 0.1246},
+                    {"id": 10, "uri": "d305_19", "element": "Hydrogen", "importance_score": 0.2237},
+                    {"id": 11, "uri": "d305_2", "element": "Carbon", "importance_score": 0.167},
+                    {"id": 12, "uri": "d305_20", "element": "Hydrogen", "importance_score": 0.1723},
+                    {"id": 13, "uri": "d305_21", "element": "Hydrogen", "importance_score": 0.1675},
+                    {"id": 14, "uri": "d305_22", "element": "Hydrogen", "importance_score": 0.2046},
+                    {"id": 15, "uri": "d305_23", "element": "Hydrogen", "importance_score": 0.2449},
+                    {"id": 16, "uri": "d305_24", "element": "Oxygen", "importance_score": 0.1313},
+                    {"id": 17, "uri": "d305_25", "element": "Chlorine", "importance_score": 1.0},
+                    {"id": 18, "uri": "d305_26", "element": "Hydrogen", "importance_score": 0.1809},
+                    {"id": 19, "uri": "d305_3", "element": "Carbon", "importance_score": 0.1196},
+                    {"id": 20, "uri": "d305_4", "element": "Carbon", "importance_score": 0.1913},
+                    {"id": 21, "uri": "d305_5", "element": "Carbon", "importance_score": 0.18},
+                    {"id": 22, "uri": "d305_6", "element": "Carbon", "importance_score": 0.1185},
+                    {"id": 23, "uri": "d305_7", "element": "Hydrogen", "importance_score": 0.1819},
+                    {"id": 24, "uri": "d305_8", "element": "Hydrogen", "importance_score": 0.1816},
+                    {"id": 25, "uri": "d305_9", "element": "Hydrogen", "importance_score": 0.1791}
+                ],
+                "links": [
+                    {"source": 0, "target": 11, "type": "Bond-7", "importance_score": 0.1488},
+                    {"source": 11, "target": 19, "type": "Bond-7", "importance_score": 0.1488},
+                    {"source": 19, "target": 20, "type": "Bond-7", "importance_score": 0.1415},
+                    {"source": 20, "target": 21, "type": "Bond-7", "importance_score": 0.1558},
+                    {"source": 21, "target": 22, "type": "Bond-7", "importance_score": 0.1366},
+                    {"source": 0, "target": 22, "type": "Bond-7", "importance_score": 0.1328},
+                    {"source": 0, "target": 23, "type": "Bond-1", "importance_score": 0.8921},
+                    {"source": 19, "target": 24, "type": "Bond-1", "importance_score": 0.914},
+                    {"source": 22, "target": 25, "type": "Bond-1", "importance_score": 0.9114},
+                    {"source": 1, "target": 20, "type": "Bond-1", "importance_score": 0.1526},
+                    {"source": 1, "target": 2, "type": "Bond-1", "importance_score": 0.138},
+                    {"source": 1, "target": 3, "type": "Bond-1", "importance_score": 0.9686},
+                    {"source": 1, "target": 4, "type": "Bond-1", "importance_score": 0.9762},
+                    {"source": 2, "target": 5, "type": "Bond-7", "importance_score": 0.1166},
+                    {"source": 5, "target": 6, "type": "Bond-7", "importance_score": 0.1606},
+                    {"source": 6, "target": 7, "type": "Bond-7", "importance_score": 0.1182},
+                    {"source": 7, "target": 8, "type": "Bond-7", "importance_score": 0.1435},
+                    {"source": 8, "target": 9, "type": "Bond-7", "importance_score": 0.1215},
+                    {"source": 2, "target": 9, "type": "Bond-7", "importance_score": 0.1389},
+                    {"source": 5, "target": 10, "type": "Bond-1", "importance_score": 0.923},
+                    {"source": 6, "target": 12, "type": "Bond-1", "importance_score": 0.9419},
+                    {"source": 7, "target": 13, "type": "Bond-1", "importance_score": 0.8932},
+                    {"source": 8, "target": 14, "type": "Bond-1", "importance_score": 0.9075},
+                    {"source": 9, "target": 15, "type": "Bond-1", "importance_score": 0.9248},
+                    {"source": 16, "target": 21, "type": "Bond-1", "importance_score": 0.5073},
+                    {"source": 11, "target": 17, "type": "Bond-1", "importance_score": 0.9338},
+                    {"source": 16, "target": 18, "type": "Bond-1", "importance_score": 0.9454}
+                ]
+            }
+        };
+
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            if (simulation) {
+                simulation.force('center', d3.forceCenter(width / 2 + 100, height / 2));
+                simulation.alpha(0.3).restart();
+            }
+        });
+
+        // Initialize UI values
+        document.getElementById('legend-gradient').style.background = colorThemes[currentTheme].gradient;
+
+        // Handle File Uploads
+        document.getElementById('file-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const json = JSON.parse(event.target.result);
+                    renderExplanation(json);
+                } catch (error) {
+                    alert('Invalid JSON file format. Make sure it matches the explanation payload schema.');
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // Handle Theme selection
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelector('.theme-btn.active').classList.remove('active');
+                e.target.classList.add('active');
+                currentTheme = e.target.getAttribute('data-theme');
+                
+                // Update active CSS colors
+                document.documentElement.style.setProperty('--active-accent', `var(--accent-${currentTheme})`);
+                document.getElementById('legend-gradient').style.background = colorThemes[currentTheme].gradient;
+
+                // Re-colorize the existing graph elements
+                updateColors();
+            });
+        });
+
+        // Update Ranges
+        const setupSlider = (id, suffix, callback) => {
+            const slider = document.getElementById(id);
+            const valSpan = document.getElementById(id + '-val');
+            slider.addEventListener('input', (e) => {
+                valSpan.textContent = e.target.value + suffix;
+                callback(parseFloat(e.target.value));
+            });
+        };
+
+        setupSlider('node-size', 'px', (val) => {
+            svg.selectAll('.node-circle').attr('r', d => val + (d.importance_score * 8));
+        });
+
+        setupSlider('edge-width', 'px', (val) => {
+            svg.selectAll('.edge-line').attr('stroke-width', d => val * (d.importance_score || 0.1));
+        });
+
+        setupSlider('force-strength', 'px', (val) => {
+            if (simulation) {
+                simulation.force('link').distance(val);
+                simulation.alpha(0.3).restart();
+            }
+        });
+
+        // Toggle Labels
+        document.getElementById('toggle-labels').addEventListener('change', (e) => {
+            const display = e.target.checked ? 'block' : 'none';
+            svg.selectAll('.node-label').style('display', display);
+            svg.selectAll('.edge-label-group').style('display', display);
+        });
+
+        // Initial Load
+        renderExplanation(defaultData);
+
+        // Core Render Function
+        function renderExplanation(data) {
+            currentDataset = data;
+            
+            // 1. Populate metadata panel
+            document.getElementById('meta-mol-id').textContent = data.metadata.molecule_id;
+            
+            // Format prediction
+            const predVal = data.prediction.predicted_class === 1 ? 'Mutagenic' : 'Non-Mutagenic';
+            const predBadge = `<span class="badge ${data.prediction.predicted_class === 1 ? 'badge-mutagenic' : 'badge-nonmutagenic'}">${predVal}</span>`;
+            document.getElementById('meta-prediction').innerHTML = predBadge;
+
+            // Format true class
+            const trueVal = data.metadata.true_class === 1 ? 'Mutagenic' : 'Non-Mutagenic';
+            const trueBadge = `<span class="badge ${data.metadata.true_class === 1 ? 'badge-mutagenic' : 'badge-nonmutagenic'}">${trueVal}</span>`;
+            document.getElementById('meta-true-class').innerHTML = trueBadge;
+
+            document.getElementById('meta-confidence').textContent = `${(data.prediction.confidence * 100).toFixed(1)}%`;
+
+            // 2. Clear canvas
+            svg.selectAll('*').remove();
+
+            const nodes = data.graph.nodes.map(d => Object.assign({}, d));
+            const links = data.graph.links.map(d => Object.assign({}, d));
+
+            // Setup forces
+            const linkDistance = parseFloat(document.getElementById('force-strength').value);
+            simulation = d3.forceSimulation(nodes)
+                .force('link', d3.forceLink(links).id(d => d.id).distance(linkDistance))
+                .force('charge', d3.forceManyBody().strength(-150))
+                .force('center', d3.forceCenter(width / 2 + 100, height / 2))
+                .force('collision', d3.forceCollide().radius(25));
+
+            // Create container groups
+            const g = svg.append('g').attr('class', 'zoom-group');
+
+            // Zoom support
+            svg.call(d3.zoom().scaleExtent([0.3, 5]).on('zoom', (event) => {
+                g.attr('transform', event.transform);
+            }));
+
+            const baseNodeSize = parseFloat(document.getElementById('node-size').value);
+            const baseEdgeWidth = parseFloat(document.getElementById('edge-width').value);
+
+            // Draw links
+            const edge = g.append('g')
+                .attr('class', 'links')
+                .selectAll('line')
+                .data(links)
+                .join('line')
+                .attr('class', 'edge-line')
+                .attr('stroke', colorThemes[currentTheme].base)
+                .attr('stroke-width', d => baseEdgeWidth * (d.importance_score || 0.1))
+                .attr('opacity', d => 0.15 + (d.importance_score * 0.85)) // Heatmap opacity min 0.15
+                .on('mouseenter', (event, d) => showDetails('Bond Edge', d))
+                .on('mouseleave', hideDetails);
+
+            // Draw link labels (with background card)
+            const edgeLabelGroup = g.append('g')
+                .attr('class', 'edge-labels')
+                .selectAll('g')
+                .data(links)
+                .join('g')
+                .attr('class', 'edge-label-group')
+                .style('display', document.getElementById('toggle-labels').checked ? 'block' : 'none');
+
+            edgeLabelGroup.append('rect')
+                .attr('class', 'edge-label-bg')
+                .attr('width', 75)
+                .attr('height', 16)
+                .attr('x', -37.5)
+                .attr('y', -8);
+
+            edgeLabelGroup.append('text')
+                .attr('class', 'edge-label-text')
+                .attr('dy', '3.5px')
+                .text(d => `${d.type.split('-').pop()} (${d.importance_score.toFixed(2)})`);
+
+            // Draw nodes
+            const node = g.append('g')
+                .attr('class', 'nodes')
+                .selectAll('circle')
+                .data(nodes)
+                .join('circle')
+                .attr('class', 'node-circle')
+                .attr('fill', colorThemes[currentTheme].base)
+                .attr('r', d => baseNodeSize + (d.importance_score * 8))
+                .attr('opacity', d => 0.15 + (d.importance_score * 0.85)) // Heatmap opacity min 0.15
+                .call(drag(simulation))
+                .on('mouseenter', (event, d) => showDetails('Atom Node', d))
+                .on('mouseleave', hideDetails);
+
+            // Draw node labels
+            const label = g.append('g')
+                .attr('class', 'node-labels')
+                .selectAll('text')
+                .data(nodes)
+                .join('text')
+                .attr('class', 'node-label')
+                .attr('dy', d => -(baseNodeSize + (d.importance_score * 8) + 6))
+                .text(d => `${d.element} (${d.importance_score.toFixed(2)})`)
+                .style('display', document.getElementById('toggle-labels').checked ? 'block' : 'none');
+
+            // Simulation tick
+            simulation.on('tick', () => {
+                edge
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                edgeLabelGroup
+                    .attr('transform', d => {
+                        const x = (d.source.x + d.target.x) / 2;
+                        const y = (d.source.y + d.target.y) / 2;
+                        return `translate(${x}, ${y})`;
+                    });
+
+                node
+                    .attr('cx', d => d.x)
+                    .attr('cy', d => d.y);
+
+                label
+                    .attr('x', d => d.x)
+                    .attr('y', d => d.y);
+            });
+        }
+
+        // Drag behaviors
+        function drag(simulation) {
+            function dragstarted(event) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                event.subject.fx = event.subject.x;
+                event.subject.fy = event.subject.y;
+            }
+            
+            function dragged(event) {
+                event.subject.fx = event.x;
+                event.subject.fy = event.y;
+            }
+            
+            function dragended(event) {
+                if (!event.active) simulation.alphaTarget(0);
+                event.subject.fx = null;
+                event.subject.fy = null;
+            }
+            
+            return d3.drag()
+                .on('start', dragstarted)
+                .on('drag', dragged)
+                .on('end', dragended);
+        }
+
+        // Re-apply theme colors to nodes/edges dynamically
+        function updateColors() {
+            const activeColor = colorThemes[currentTheme].base;
+            svg.selectAll('.node-circle').transition().duration(300).attr('fill', activeColor);
+            svg.selectAll('.edge-line').transition().duration(300).attr('stroke', activeColor);
+        }
+
+        // Hover Information Panels
+        function showDetails(type, data) {
+            const panel = document.getElementById('details-panel');
+            const title = document.getElementById('detail-type');
+            const contents = document.getElementById('detail-contents');
+
+            title.textContent = `${type} Details`;
+            panel.style.display = 'block';
+            panel.style.opacity = '1';
+
+            let html = '';
+            if (type === 'Atom Node') {
+                html = `
+                    <div class="info-item">
+                        <span class="info-label">Atom URI</span>
+                        <span class="info-val" style="font-size:11px; word-break:break-all;">${data.uri}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Element Type</span>
+                        <span class="info-val">${data.element}</span>
+                    </div>
+                    <div class="info-item" style="grid-column: span 2;">
+                        <span class="info-label">Importance Score</span>
+                        <span class="info-val" style="color:var(--active-accent); font-size:18px;">${data.importance_score.toFixed(4)}</span>
+                    </div>
+                `;
+            } else {
+                html = `
+                    <div class="info-item">
+                        <span class="info-label">Bond Type</span>
+                        <span class="info-val">${data.type}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Connections</span>
+                        <span class="info-val" style="font-size:12px;">Node ${data.source.id} ↔ Node ${data.target.id}</span>
+                    </div>
+                    <div class="info-item" style="grid-column: span 2;">
+                        <span class="info-label">Importance Score</span>
+                        <span class="info-val" style="color:var(--active-accent); font-size:18px;">${data.importance_score.toFixed(4)}</span>
+                    </div>
+                `;
+            }
+            contents.innerHTML = html;
+        }
+
+        function hideDetails() {
+            const panel = document.getElementById('details-panel');
+            panel.style.opacity = '0';
+            setTimeout(() => {
+                if (panel.style.opacity === '0') {
+                    panel.style.display = 'none';
+                }
+            }, 300);
+        }
+    </script>
+</body>
+</html>

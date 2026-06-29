@@ -1,0 +1,203 @@
+{
+    "metadata": {
+        "molecule_id": "d300",
+        "uri": "http://dl-learner.org/carcinogenesis#d300",
+        "true_class": 1
+    },
+    "prediction": {
+        "predicted_class": 1,
+        "confidence": 0.9776
+    },
+    "graph": {
+        "nodes": [
+            {
+                "id": 0,
+                "uri": "http://dl-learner.org/carcinogenesis#Compound",
+                "element": "Class",
+                "importance_score": 0.6784
+            },
+            {
+                "id": 1,
+                "uri": "http://dl-learner.org/carcinogenesis#Ether",
+                "element": "Class",
+                "importance_score": 0.7715
+            },
+            {
+                "id": 2,
+                "uri": "http://dl-learner.org/carcinogenesis#bond6339",
+                "element": "Bond-1",
+                "importance_score": 0.3727
+            },
+            {
+                "id": 3,
+                "uri": "http://dl-learner.org/carcinogenesis#bond6341",
+                "element": "Bond-1",
+                "importance_score": 0.2353
+            },
+            {
+                "id": 4,
+                "uri": "http://dl-learner.org/carcinogenesis#bond6342",
+                "element": "Bond-1",
+                "importance_score": 0.2365
+            },
+            {
+                "id": 5,
+                "uri": "http://dl-learner.org/carcinogenesis#bond6345",
+                "element": "Bond-1",
+                "importance_score": 0.3606
+            },
+            {
+                "id": 6,
+                "uri": "http://dl-learner.org/carcinogenesis#bond6346",
+                "element": "Bond-1",
+                "importance_score": 0.2222
+            },
+            {
+                "id": 7,
+                "uri": "http://dl-learner.org/carcinogenesis#bond6347",
+                "element": "Bond-1",
+                "importance_score": 0.2085
+            },
+            {
+                "id": 8,
+                "uri": "http://dl-learner.org/carcinogenesis#bond6348",
+                "element": "Bond-1",
+                "importance_score": 0.2115
+            },
+            {
+                "id": 9,
+                "uri": "http://dl-learner.org/carcinogenesis#bond6349",
+                "element": "Bond-1",
+                "importance_score": 0.2444
+            },
+            {
+                "id": 10,
+                "uri": "http://dl-learner.org/carcinogenesis#bond6350",
+                "element": "Bond-1",
+                "importance_score": 0.2323
+            },
+            {
+                "id": 11,
+                "uri": "http://dl-learner.org/carcinogenesis#d300",
+                "element": "Compound",
+                "importance_score": 0.4747
+            },
+            {
+                "id": 12,
+                "uri": "http://dl-learner.org/carcinogenesis#ester-2105",
+                "element": "Ester",
+                "importance_score": 0.7339
+            },
+            {
+                "id": 13,
+                "uri": "http://dl-learner.org/carcinogenesis#ester-2106",
+                "element": "Ester",
+                "importance_score": 0.7583
+            },
+            {
+                "id": 14,
+                "uri": "http://dl-learner.org/carcinogenesis#ester-2107",
+                "element": "Ester",
+                "importance_score": 0.7132
+            },
+            {
+                "id": 15,
+                "uri": "http://dl-learner.org/carcinogenesis#ether-2108",
+                "element": "Ether",
+                "importance_score": 0.7435
+            }
+        ],
+        "links": [
+            {
+                "source": 7,
+                "target": 11,
+                "importance_score": 0.8352,
+                "type": "hasBond_inverse"
+            },
+            {
+                "source": 4,
+                "target": 11,
+                "importance_score": 0.831,
+                "type": "hasBond_inverse"
+            },
+            {
+                "source": 6,
+                "target": 11,
+                "importance_score": 0.8261,
+                "type": "hasBond_inverse"
+            },
+            {
+                "source": 3,
+                "target": 11,
+                "importance_score": 0.8188,
+                "type": "hasBond_inverse"
+            },
+            {
+                "source": 0,
+                "target": 11,
+                "importance_score": 0.8148,
+                "type": "type_inverse"
+            },
+            {
+                "source": 8,
+                "target": 11,
+                "importance_score": 0.8143,
+                "type": "hasBond_inverse"
+            },
+            {
+                "source": 10,
+                "target": 11,
+                "importance_score": 0.8046,
+                "type": "hasBond_inverse"
+            },
+            {
+                "source": 9,
+                "target": 11,
+                "importance_score": 0.7994,
+                "type": "hasBond_inverse"
+            },
+            {
+                "source": 2,
+                "target": 11,
+                "importance_score": 0.7702,
+                "type": "hasBond_inverse"
+            },
+            {
+                "source": 5,
+                "target": 11,
+                "importance_score": 0.7677,
+                "type": "hasBond_inverse"
+            },
+            {
+                "source": 1,
+                "target": 15,
+                "importance_score": 0.7532,
+                "type": "type_inverse"
+            },
+            {
+                "source": 14,
+                "target": 11,
+                "importance_score": 0.7474,
+                "type": "hasStructure_inverse"
+            },
+            {
+                "source": 15,
+                "target": 11,
+                "importance_score": 0.7424,
+                "type": "hasStructure_inverse"
+            },
+            {
+                "source": 13,
+                "target": 11,
+                "importance_score": 0.742,
+                "type": "hasStructure_inverse"
+            },
+            {
+                "source": 12,
+                "target": 11,
+                "importance_score": 0.7416,
+                "type": "hasStructure_inverse"
+            }
+        ]
+    }
+}

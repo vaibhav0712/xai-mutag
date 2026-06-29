@@ -2,6 +2,7 @@ import os
 from rdflib import URIRef, RDF, Namespace, Graph
 from torch_geometric.data import Data
 from dataclasses import dataclass
+import torch.nn.functional as F
 from collections import Counter
 from pathlib import Path
 import pandas as pd
