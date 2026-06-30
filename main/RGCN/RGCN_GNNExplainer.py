@@ -6,10 +6,12 @@ from rdflib import Graph
 from torch_geometric.explain import Explainer, GNNExplainer
 import torch
 from torch_geometric.nn import FastRGCNConv, global_mean_pool
+import random
+import numpy as np
+from torch_geometric.explain.metric import unfaithfulness, fidelity
 
 def set_seed(seed=42):
-    import random
-    import numpy as np
+   
     os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
@@ -216,7 +218,7 @@ if __name__ == "__main__":
     RDF_PATH = dataset_path / 'mutag_stripped.nt'
 
     # Test Molecule URI (Using the d305 example you mentioned earlier)
-    TEST_URI = "http://dl-learner.org/carcinogenesis#d50"
+    TEST_URI = "http://dl-learner.org/carcinogenesis#d101"
 
     print("=== Step 1: Testing Pipeline Initialization ===")
     start_time = time.time()
