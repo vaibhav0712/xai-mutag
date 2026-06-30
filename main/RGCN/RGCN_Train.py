@@ -11,13 +11,12 @@ import numpy as np
 import random
 import torch
 
-ROOT_DIR = Path().cwd().parent
+ROOT_DIR = Path().cwd()
 models_dir = ROOT_DIR / "models"
 dataset_path = ROOT_DIR / "mutag-hetero"
 
-# check if path exist 
 if not models_dir.exists():
-    raise FileNotFoundError(f"Models directory path {models_dir} does not exist.")
+    models_dir.mkdir(parents=True, exist_ok=True)
 
 
 def set_seed(seed=42):

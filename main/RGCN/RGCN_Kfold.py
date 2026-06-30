@@ -1,18 +1,9 @@
-# kfold.py
-# Drop this file next to your existing training script.
-# Rename your training script to `train_rgcn.py`, or change the import below.
-# Nothing in your existing code needs to be modified.
-
 from sklearn.model_selection import StratifiedKFold
 from torch_geometric.loader import DataLoader
 from pathlib import Path
 import numpy as np
 import torch
 
-# ── Import everything we need directly from your existing script ──────────────
-# MutagenicityGNN, train_epoch, evaluate, and set_seed are all defined at
-# module level in your script, so they import cleanly without triggering the
-# `if __name__ == "__main__"` block.
 from RGCN.RGCN_Train import MutagenicityGNN, train_epoch, evaluate, set_seed
 
 ROOT_DIR    = Path().cwd()

@@ -205,20 +205,28 @@ def generate_explanation_payload(molecule_uri_str, pipeline_resources):
     })
 
 if __name__ == "__main__":
+    import argparse
     import time
     from pathlib import Path
     import json
 
-    # Define paths based on your project structure
-    ROOT_DIR = Path().cwd().parent
+    parser = argparse.ArgumentParser(description="Generate GNNExplainer explanations for a given molecule URI")
+    parser.add_argument(
+        "--uri",
+        type=str,
+        default="http://dl-learner.org/carcinogenesis#d101",
+        help="Full URI of the molecule to explain (e.g. 'http://dl-learner.org/carcinogenesis#d305')",
+    )
+    args = parser.parse_args()
+
+    ROOT_DIR = Path().cwd()
     models_dir = ROOT_DIR / "models"
     dataset_path = ROOT_DIR / "mutag-hetero"
     MODEL_PATH = models_dir / 'rgnn_model_checkpoint.pt'
     DATASET_PATH = dataset_path / 'pyg_dataset.pt'
     RDF_PATH = dataset_path / 'mutag_stripped.nt'
 
-    # Test Molecule URI (Using the d305 example you mentioned earlier)
-    TEST_URI = "http://dl-learner.org/carcinogenesis#d101"
+    TEST_URI = args.uri
 
     print("=== Step 1: Testing Pipeline Initialization ===")
     start_time = time.time()
@@ -226,21 +234,20 @@ if __name__ == "__main__":
     try:
         resources = initialize_xai_pipeline(MODEL_PATH, DATASET_PATH, RDF_PATH)
         init_time = time.time() - start_time
-        print(f"✅ Pipeline initialized successfully in {init_time:.2f} seconds!")
+        print(f"[OK] Pipeline initialized successfully in {init_time:.2f} seconds!")
     except Exception as e:
-        print(f"❌ Failed to initialize pipeline: {e}")
+        print(f"[FAIL] Failed to initialize pipeline: {e}")
         exit(1)
 
-    print("\n=== Step 2: Testing Payload Generation ===")
+    print(f"\n=== Step 2: Generating Explanation for {TEST_URI} ===")
     start_time = time.time()
     
     try:
         json_response = generate_explanation_payload(TEST_URI, resources)
 
         gen_time = time.time() - start_time
-        print(f"✅ Payload generated successfully in {gen_time:.4f} seconds!\n")
+        print(f"[OK] Payload generated successfully in {gen_time:.4f} seconds!\n")
 
-        # Parse the JSON string back to a dict just to print a clean summary for the terminal
         parsed_json = json.loads(json_response)
         with open('payload.json', 'w') as f:
             json.dump(parsed_json, f)
@@ -252,4 +259,4 @@ if __name__ == "__main__":
         print(f"Edges Extracted: {len(parsed_json.get('graph', {}).get('links', []))}")
         
     except Exception as e:
-        print(f"❌ Failed to generate payload: {e}")
+        print(f"[FAIL] Failed to generate payload: {e}")

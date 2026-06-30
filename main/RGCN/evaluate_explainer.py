@@ -11,11 +11,11 @@ from torch_geometric.explain import Explainer, GNNExplainer
 from torch_geometric.explain.metric import unfaithfulness
 from torch_geometric.nn import FastRGCNConv, global_mean_pool
 
-from RGCN_Train import MutagenicityGNN, set_seed
-from RGCN_GNNExplainer import RGCNExplainerWrapper
+from RGCN.RGCN_Train import MutagenicityGNN, set_seed
+from RGCN.RGCN_GNNExplainer import RGCNExplainerWrapper
 
 
-ROOT_DIR = Path().cwd().parent
+ROOT_DIR = Path().cwd()
 MODELS_DIR = ROOT_DIR / "models"
 DATASET_DIR = ROOT_DIR / "mutag-hetero"
 
@@ -290,4 +290,4 @@ if __name__ == "__main__":
             },
             output_path,
         )
-        print(f"[INFO] Resulavg_unfaithts saved to {output_path}")
+        print(f"[INFO] Results saved to {output_path}")

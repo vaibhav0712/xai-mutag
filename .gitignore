@@ -1,3 +1,4 @@
 bench/
 extras/
 __pycache__
+install.cmd
